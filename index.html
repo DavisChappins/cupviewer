@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupviewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        #map { height: 80vh; }
+        #side-pane { height: 80vh; overflow-y: auto; padding: 20px; }
+        .leaflet-top.leaflet-right {
+            top: 10px;
+        }
+        .collapsible-control {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 200px;
+        }
+        .collapsible-control h4 {
+            cursor: pointer;
+            margin: 0;
+        }
+        .collapsible-content {
+            display: none;
+            margin-top: 10px;
+        }
+        .collapsible-content label {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+	<nav class="navbar is-light">
+		<div class="navbar-brand">
+			<a class="navbar-item" href="#">Cup Viewer</a>
+			<div class="navbar-item">
+				<button id="upload-cup-button" class="button is-primary">Upload CUP File</button>
+			</div>
+			<div class="navbar-item">
+				<input type="file" id="cup-file-input" accept=".cup" style="display: none;">
+				<span id="visible-waypoints">Number of waypoints:</span>
+
+			</div>
+		</div>
+
+	</nav>
+    <div class="container is-fluid mt-3">
+        <div class="columns">
+            <div id="map" class="column is-three-quarters"></div>
+            <div id="side-pane" class="column">
+                <div id="unit-selector" class="field">
+                    <label class="label" for="units">Select Units:</label>
+                    <div class="control">
+                        <div class="select">
+                            <select id="units">
+                                <option value="imperial">Imperial</option>
+                                <option value="metric">Metric</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <h2 class="title is-4">Waypoint Details</h2>
+                <div id="poi-details" class="box">
+                    <p><strong>Name:</strong> <span id="poi-name"></span></p>
+                    <p><strong>Code:</strong> <span id="poi-code"></span></p>
+                    <p><strong>Country:</strong> <span id="poi-country"></span></p>
+                    <p><strong>Latitude:</strong> <span id="poi-lat"></span></p>
+                    <p><strong>Longitude:</strong> <span id="poi-lon"></span></p>
+                    <p><strong>Elevation:</strong> <span id="poi-elev"></span></p>
+                    <p><strong>Style:</strong> <span id="poi-style"></span></p>
+                    <p><strong>Runway Direction:</strong> <span id="poi-rwdir"></span></p>
+                    <p><strong>Runway Length:</strong> <span id="poi-rwlen"></span></p>
+                    <p><strong>Runway Width:</strong> <span id="poi-rwwidth"></span></p>
+                    <p><strong>Frequency:</strong> <span id="poi-freq"></span></p>
+                    <p><strong>Description:</strong> <span id="poi-desc"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="pois.js"></script>
+</body>
+</html>
