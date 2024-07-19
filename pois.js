@@ -109,6 +109,15 @@ function convertDMSToDD(dms) {
     return dd;
 }
 
+
+function convertDDToDMM(dd, isLat) {
+	const direction = dd >= 0 ? (isLat ? 'N' : 'E') : (isLat ? 'S' : 'W');
+	const absoluteDD = Math.abs(dd);
+	const degrees = Math.floor(absoluteDD);
+	const minutes = (absoluteDD - degrees) * 60;
+	return `${degrees}${minutes.toFixed(3).padStart(6, '0')}${direction}`;
+}
+
 function metersToFeet(meters) {
     const feet = Math.round(meters * 3.28084) + ' ft';
     console.log(`Converting ${meters} meters to ${feet}`);
@@ -250,14 +259,71 @@ document.addEventListener('DOMContentLoaded', function () {
 	new L.Control.ImageAge({ position: 'bottomright' }).addTo(map);
 
 
+    L.Control.MousePosition = L.Control.extend({
+        options: {
+            position: 'bottomleft',
+            separator: ' | ',
+            emptyString: 'Unavailable',
+            lngFirst: false,
+            numDigits: 5,
+            lngFormatter: undefined,
+            latFormatter: undefined,
+            prefix: ""
+        },
+
+        onAdd: function (map) {
+            this._container = L.DomUtil.create('div', 'leaflet-control-mouseposition');
+            L.DomEvent.disableClickPropagation(this._container);
+            map.on('mousemove', this._onMouseMove, this);
+            this._container.innerHTML = this.options.emptyString;
+            return this._container;
+        },
+
+        onRemove: function (map) {
+            map.off('mousemove', this._onMouseMove);
+        },
+
+        _onMouseMove: function (e) {
+            const lngDD = this.options.lngFormatter ? this.options.lngFormatter(e.latlng.lng) : L.Util.formatNum(e.latlng.lng, this.options.numDigits);
+            const latDD = this.options.latFormatter ? this.options.latFormatter(e.latlng.lat) : L.Util.formatNum(e.latlng.lat, this.options.numDigits);
+            const valueDD = this.options.lngFirst ? lngDD + this.options.separator + latDD : latDD + this.options.separator + lngDD;
+            const prefixAndValueDD = this.options.prefix + ' ' + valueDD;
+
+            const latDMM = convertDDToDMM(e.latlng.lat, true);
+            const lngDMM = convertDDToDMM(e.latlng.lng, false);
+            const valueDMM = latDMM + this.options.separator + lngDMM;
+
+            this._container.innerHTML = prefixAndValueDD + '<br>' + valueDMM; // Add a second row with DDMM.MMM format
+        }
+    });
+
+	L.Map.mergeOptions({
+		positionControl: false
+	});
+
+	L.Map.addInitHook(function () {
+		if (this.options.positionControl) {
+			this.positionControl = new L.Control.MousePosition();
+			this.addControl(this.positionControl);
+		}
+	});
+
+	L.control.mousePosition = function (options) {
+		return new L.Control.MousePosition(options);
+	};
+
+
 
 
 	// Add baseMaps to the map with the control layer
 	L.control.layers(baseMaps).addTo(map);
+	L.control.mousePosition().addTo(map);
 
 	L.control.zoom({
 		position: 'topright' // Change the position of the zoom control
 	}).addTo(map);
+	
+	
 
     let markers = []; // Store marker references for updating on zoom change
     let currentPoi = null; // Store the currently displayed POI details
