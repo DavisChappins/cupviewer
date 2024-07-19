@@ -72,15 +72,15 @@ const ICON_SIZES = {
 };
 
 const TEXT_SIZES = {
-    0: { size: '4px', visible: false },
-    1: { size: '4px', visible: false },
-    2: { size: '4px', visible: false },
-    3: { size: '4px', visible: false },
-    4: { size: '4px', visible: false },
-    5: { size: '4px', visible: false },
-    6: { size: '4px', visible: false },
-    7: { size: '8px', visible: false },
-    8: { size: '8px', visible: false },
+    0: { size: '10px', visible: false },
+    1: { size: '10px', visible: false },
+    2: { size: '10px', visible: false },
+    3: { size: '10px', visible: false },
+    4: { size: '10px', visible: false },
+    5: { size: '10px', visible: false },
+    6: { size: '10px', visible: false },
+    7: { size: '10px', visible: false },
+    8: { size: '10px', visible: false },
     9: { size: '10px', visible: true },
     10: { size: '10px', visible: true },
     11: { size: '10px', visible: true },
@@ -424,15 +424,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		const iconSize = ICON_SIZES[zoomLevel] || ICON_SIZES[10];
 		const iconUrl = iconSettings[poi.style] || 'icons/default_icon.svg';
 		const textSize = TEXT_SIZES[zoomLevel].size;
-		const textVisible = TEXT_SIZES[zoomLevel].visible ? 'visible' : 'hidden';
+		let textVisible = TEXT_SIZES[zoomLevel].visible ? 'visible' : 'hidden';
 
-		const borderStyle = (selectedPoi && selectedPoi.name === poi.name) ? '2px solid red' : 'none';
+		// Always show the label if this POI is selected
+		if (selectedPoi && selectedPoi.name === poi.name) {
+			textVisible = 'visible';
+		}
 
 		const customIcon = L.divIcon({
 			html: `
 				<div style="position: relative;">
 					<img src="${iconUrl}" style="width: 100%; height: 100%; transform: rotate(${parseFloat(poi.rwdir) - 45}deg); transform-origin: center;">
-					<div style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border-radius: 5px; padding: 2px 5px; white-space: nowrap; text-align: center; font-size: ${textSize}; visibility: ${textVisible}; color: white; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; border: ${borderStyle}; border-radius: 5px;">
+					<div style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border-radius: 5px; padding: 2px 5px; white-space: nowrap; text-align: center; font-size: ${textSize}; visibility: ${textVisible}; color: white; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; border: ${selectedPoi && selectedPoi.name === poi.name ? '2px solid red' : 'none'}; border-radius: 5px;">
 						${poi.name}
 					</div>
 				</div>
@@ -451,23 +454,30 @@ document.addEventListener('DOMContentLoaded', function () {
 			selectedPoi = poi; // Update the selected POI
 			updateAllMarkers(); // Update all markers to reflect the selection
 			updatePoiDetails(poi);
-
 		});
-    }
+	}
 
 	function updateMarkerIcon(marker, poi, iconSize) {
 		const zoomLevel = map.getZoom();
 		const iconUrl = iconSettings[poi.style] || 'icons/default_icon.svg';
 		const textSize = TEXT_SIZES[zoomLevel].size;
-		const textVisible = TEXT_SIZES[zoomLevel].visible ? 'visible' : 'hidden';
+		let textVisible = TEXT_SIZES[zoomLevel].visible ? 'visible' : 'hidden';
 
-		const borderStyle = (selectedPoi && selectedPoi.name === poi.name) ? '2px solid red' : 'none';
+		// Always show the label if this POI is selected
+		if (selectedPoi && selectedPoi.name === poi.name) {
+			textVisible = 'visible';
+		}
+
+		// Hide labels at zoom levels 8 and below except for the selected POI
+		if (zoomLevel < 9 && (!selectedPoi || selectedPoi.name !== poi.name)) {
+			textVisible = 'hidden';
+		}
 
 		const customIcon = L.divIcon({
 			html: `
 				<div style="position: relative;">
 					<img src="${iconUrl}" style="width: 100%; height: 100%; transform: rotate(${parseFloat(poi.rwdir) - 45}deg); transform-origin: center;">
-					<div style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border-radius: 5px; padding: 2px 5px; white-space: nowrap; text-align: center; font-size: ${textSize}; visibility: ${textVisible}; color: white; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; border: ${borderStyle}; border-radius: 5px;">
+					<div style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border-radius: 5px; padding: 2px 5px; white-space: nowrap; text-align: center; font-size: ${textSize}; visibility: ${textVisible}; color: white; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; border: ${selectedPoi && selectedPoi.name === poi.name ? '2px solid red' : 'none'}; border-radius: 5px;">
 						${poi.name}
 					</div>
 				</div>
@@ -478,8 +488,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			popupAnchor: [0, -iconSize[1] / 2]
 		});
 
-        marker.setIcon(customIcon);
-    }
+		marker.setIcon(customIcon);
+	}
 
 	function updatePoiDetails(poi) {
 		const unit = document.getElementById('units').value;
