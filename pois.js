@@ -182,8 +182,15 @@ document.addEventListener('DOMContentLoaded', function () {
         "Satellite": satellite,
         "Landscape": thunderforestLandscape
     };
+	
+	
+	
 
-    // Add this new code for the image age control
+
+    
+	
+	
+	// Add this new code for the image age control
 	L.Control.ImageAge = L.Control.extend({
 		onAdd: function(map) {
 			this._container = L.DomUtil.create('div', 'image-age-container');
@@ -259,43 +266,82 @@ document.addEventListener('DOMContentLoaded', function () {
 	new L.Control.ImageAge({ position: 'bottomright' }).addTo(map);
 
 
-    L.Control.MousePosition = L.Control.extend({
-        options: {
-            position: 'bottomleft',
-            separator: ' | ',
-            emptyString: 'Unavailable',
-            lngFirst: false,
-            numDigits: 5,
-            lngFormatter: undefined,
-            latFormatter: undefined,
-            prefix: ""
-        },
+	L.Control.MousePosition = L.Control.extend({
+		options: {
+			position: 'bottomleft',
+			separator: ' | ',
+			emptyString: 'Unavailable',
+			lngFirst: false,
+			numDigits: 5,
+			lngFormatter: undefined,
+			latFormatter: undefined,
+			prefix: ""
+		},
 
-        onAdd: function (map) {
-            this._container = L.DomUtil.create('div', 'leaflet-control-mouseposition');
-            L.DomEvent.disableClickPropagation(this._container);
-            map.on('mousemove', this._onMouseMove, this);
-            this._container.innerHTML = this.options.emptyString;
-            return this._container;
-        },
+		onAdd: function (map) {
+			this._container = L.DomUtil.create('div', 'leaflet-control-mouseposition');
+			L.DomEvent.disableClickPropagation(this._container);
+			map.on('mousemove', this._onMouseMove, this);
+			map.on('contextmenu', this._onRightClick, this);
+			map.on('zoomend', this._onZoomChange, this); // Add zoom change event listener
+			this._container.innerHTML = this.options.emptyString;
+			this._elevation = 'cight click'; // Initialize elevation text
+			return this._container;
+		},
 
-        onRemove: function (map) {
-            map.off('mousemove', this._onMouseMove);
-        },
+		onRemove: function (map) {
+			map.off('mousemove', this._onMouseMove);
+			map.off('contextmenu', this._onRightClick);
+			map.off('zoomend', this._onZoomChange); // Remove zoom change event listener
+		},
 
-        _onMouseMove: function (e) {
-            const lngDD = this.options.lngFormatter ? this.options.lngFormatter(e.latlng.lng) : L.Util.formatNum(e.latlng.lng, this.options.numDigits);
-            const latDD = this.options.latFormatter ? this.options.latFormatter(e.latlng.lat) : L.Util.formatNum(e.latlng.lat, this.options.numDigits);
-            const valueDD = this.options.lngFirst ? lngDD + this.options.separator + latDD : latDD + this.options.separator + lngDD;
-            const prefixAndValueDD = this.options.prefix + ' ' + valueDD;
+		_onMouseMove: function (e) {
+			const lngDD = this.options.lngFormatter ? this.options.lngFormatter(e.latlng.lng) : L.Util.formatNum(e.latlng.lng, this.options.numDigits);
+			const latDD = this.options.latFormatter ? this.options.latFormatter(e.latlng.lat) : L.Util.formatNum(e.latlng.lat, this.options.numDigits);
+			const valueDD = this.options.lngFirst ? lngDD + this.options.separator + latDD : latDD + this.options.separator + lngDD;
+			const prefixAndValueDD = this.options.prefix + ' ' + valueDD;
 
-            const latDMM = convertDDToDMM(e.latlng.lat, true);
-            const lngDMM = convertDDToDMM(e.latlng.lng, false);
-            const valueDMM = latDMM + this.options.separator + lngDMM;
+			const latDMM = convertDDToDMM(e.latlng.lat, true);
+			const lngDMM = convertDDToDMM(e.latlng.lng, false);
+			const valueDMM = latDMM + this.options.separator + lngDMM;
 
-            this._container.innerHTML = prefixAndValueDD + '<br>' + valueDMM; // Add a second row with DDMM.MMM format
-        }
-    });
+			this._container.innerHTML = `Elevation: ${this._elevation}<br>${prefixAndValueDD}<br>${valueDMM}`;
+		},
+
+		_onRightClick: function (e) {
+			const lat = e.latlng.lat;
+			const lon = e.latlng.lng;
+			
+			console.log(`Fetching elevation for coordinates: ${lat}, ${lon}`);
+
+			fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`)
+				.then(response => response.json())
+				.then(data => {
+					console.log('Open Elevation API response:', data);
+					if (data.results && data.results.length > 0) {
+						const elevationMeters = Math.round(data.results[0].elevation);
+						const elevationFeet = Math.round(elevationMeters * 3.28084);
+						this._elevation = `${elevationFeet}ft | ${elevationMeters}m`;
+						console.log(`Elevation retrieved: ${this._elevation}`);
+						this._onMouseMove(e);
+					} else {
+						console.warn('No elevation data in the API response');
+						this._elevation = 'N/A';
+						this._onMouseMove(e);
+					}
+				})
+				.catch(error => {
+					console.error('Error fetching elevation:', error);
+					this._elevation = 'Error';
+					this._onMouseMove(e);
+				});
+		},
+
+		_onZoomChange: function () {
+			this._elevation = 'Right click'; // Reset elevation text on zoom change
+			this._onMouseMove({ latlng: this._map.getCenter() }); // Update display with map center coordinates
+		}
+	});
 
 	L.Map.mergeOptions({
 		positionControl: false
@@ -318,12 +364,15 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Add baseMaps to the map with the control layer
 	L.control.layers(baseMaps).addTo(map);
 	L.control.mousePosition().addTo(map);
-
+	
 	L.control.zoom({
 		position: 'topright' // Change the position of the zoom control
 	}).addTo(map);
 	
 	
+
+
+
 
     let markers = []; // Store marker references for updating on zoom change
     let currentPoi = null; // Store the currently displayed POI details
