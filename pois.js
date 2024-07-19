@@ -166,7 +166,87 @@ document.addEventListener('DOMContentLoaded', function () {
         "Landscape": thunderforestLandscape
     };
 
+    // Add this new code for the image age control
+	L.Control.ImageAge = L.Control.extend({
+		onAdd: function(map) {
+			this._container = L.DomUtil.create('div', 'image-age-container');
+			this._text = L.DomUtil.create('span', '', this._container);
+			this._map = map;
+			this._currentDate = ''; // Store the current date for updates
+
+			map.on('zoomend', this._onZoomChange, this); // Listen for zoom changes
+			map.on('baselayerchange', this._onBaseLayerChange, this); // Listen for basemap changes
+
+			this._onZoomChange(); // Set initial state
+			return this._container;
+		},
+
+		_onZoomChange: function() {
+			var zoom = this._map.getZoom();
+			if (zoom >= 12) {
+				this._getImageInfo(); // Update image info on zoom change
+			} else {
+				this._text.innerHTML = 'Zoom in for image date';
+			}
+		},
+
+		_getImageInfo: function() {
+			var center = this._map.getCenter();
+			var url = `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/identify`;
+
+			var params = {
+				f: 'json',
+				geometry: `${center.lng},${center.lat}`,
+				geometryType: 'esriGeometryPoint',
+				sr: 4326,
+				tolerance: 0,
+				mapExtent: this._map.getBounds().toBBoxString(),
+				imageDisplay: `${this._map.getSize().x},${this._map.getSize().y},96`,
+				returnGeometry: false,
+				returnCatalogItems: 'true',
+				returnZ: 'true'
+			};
+
+			fetch(`${url}?${new URLSearchParams(params).toString()}`)
+				.then(response => response.json())
+				.then(data => {
+					console.log('Full API response:', data);
+					if (data.results && data.results.length > 0) {
+						var attributes = data.results[0].attributes;
+						var srcDate = attributes['SRC_DATE2'];
+						if (srcDate) {
+							this._text.innerHTML = `Image Date: ${srcDate}`;
+						} else {
+							this._text.innerHTML = 'Image Date: N/A';
+						}
+					} else {
+						this._text.innerHTML = 'Image Date: N/A';
+					}
+				})
+				.catch(error => {
+					console.error('Error fetching image metadata:', error);
+					this._text.innerHTML = 'Image Date: Error';
+				});
+		},
+
+		_onBaseLayerChange: function(e) {
+			if (e.name === "Satellite") {
+				this._container.style.display = 'block';
+				this._onZoomChange(); // Update date info when switching to Satellite
+			} else {
+				this._container.style.display = 'none';
+			}
+		}
+	});
+
+	new L.Control.ImageAge({ position: 'bottomright' }).addTo(map);
+
+
+
+
+	// Add baseMaps to the map with the control layer
 	L.control.layers(baseMaps).addTo(map);
+
 	L.control.zoom({
 		position: 'topright' // Change the position of the zoom control
 	}).addTo(map);
