@@ -497,6 +497,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+	const gridSize = 35; // Configurable pixel value for the grid to render not all markers
+	const renderThreshold = 100; // Configurable threshold for total number of markers to render
+	const gridLogicZoomLevel = 9; // render all at zoom higher than this
 
 
 
@@ -507,19 +510,44 @@ document.addEventListener('DOMContentLoaded', function () {
 		const iconSize = ICON_SIZES[zoomLevel] || ICON_SIZES[10]; // Default to size for zoom level 10 if undefined
 		let redrawCount = 0; // Counter for redrawn markers
 
+		const markerPositions = []; // Array to store marker pixel positions
+		const grid = {}; // Object to track occupied grid cells
+
 		markers.forEach(({ marker, poi }) => {
 			const lat = convertDMSToDD(poi.lat);
 			const lon = convertDMSToDD(poi.lon);
 			const latLng = L.latLng(lat, lon);
 
 			if (bounds.contains(latLng)) {
-				updateMarkerIcon(marker, poi, iconSize);
-				marker.addTo(map); // Add the marker to the map if within bounds
-				redrawCount++;
+				const pixelPosition = map.latLngToLayerPoint(latLng);
+				markerPositions.push({ pixelPosition, marker, poi });
 			} else {
 				map.removeLayer(marker); // Remove the marker from the map if out of bounds
 			}
 		});
+
+		if (markerPositions.length <= renderThreshold) {
+			markerPositions.forEach(({ marker, poi }) => {
+				updateMarkerIcon(marker, poi, iconSize);
+				marker.addTo(map);
+				redrawCount++;
+			});
+		} else {
+			markerPositions.forEach(({ pixelPosition, marker, poi }) => {
+				const gridX = Math.floor(pixelPosition.x / gridSize);
+				const gridY = Math.floor(pixelPosition.y / gridSize);
+				const gridKey = `${gridX},${gridY}`;
+
+				if (!grid[gridKey]) {
+					updateMarkerIcon(marker, poi, iconSize);
+					marker.addTo(map); // Add the marker to the map if within bounds
+					redrawCount++;
+					grid[gridKey] = true; // Mark this grid cell as occupied
+				} else {
+					map.removeLayer(marker); // Remove the marker from the map if out of bounds
+				}
+			});
+		}
 
 		console.log(`Markers redrawn: ${redrawCount}`);
 	}
