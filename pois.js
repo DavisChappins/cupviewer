@@ -90,11 +90,15 @@ const TEXT_SIZES = {
 };
 
 function convertDMSToDD(dms) {
-    const degrees = parseInt(dms.substring(0, dms.length - 7)); // Assumes the degrees are always at least 2 digits
+    const degreesPart = dms.substring(0, dms.length - 7);
+    const degrees = parseInt(degreesPart);
     const minutes = parseFloat(dms.substring(dms.length - 7, dms.length - 1));
     const direction = dms.charAt(dms.length - 1);
-    const dd = degrees + (minutes / 60);
-    return (direction === 'S' || direction === 'W') ? -dd : dd;
+    let dd = Math.abs(degrees) + (minutes / 60);
+    if (direction === 'S' || direction === 'W' || degreesPart.startsWith('-')) {
+        dd = -dd;
+    }
+    return dd;
 }
 
 function metersToFeet(meters) {
@@ -169,6 +173,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let markers = []; // Store marker references for updating on zoom change
     let currentPoi = null; // Store the currently displayed POI details
+    let lastPoi = null; // Variable to store the last processed POI
+	
+    /**
+     * Extracts approximate coordinates from lat/lon strings
+     * @param {string} lat - Latitude in DMS format
+     * @param {string} lon - Longitude in DMS format
+     * @returns {Array} - Array with approximate [latitude, longitude]
+     */
+    function getApproximateCoordinates(lat, lon) {
+        console.log('Getting approximate coordinates for', lat, lon);
+        const latDD = convertDMSToDD(lat);
+        const lonDD = convertDMSToDD(lon);
+        
+        const approxLat = Math.trunc(latDD);
+        const approxLon = Math.trunc(lonDD);
+        
+        console.log('Approximate coordinates:', approxLat, approxLon);
+        return [approxLat, approxLon];
+    }	
+	
+	
+
 	
 	
     // Add event listener to the "Upload CUP File" button
@@ -187,21 +213,50 @@ document.addEventListener('DOMContentLoaded', function () {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = e.target.result;
-                console.log('File content:', data);
+                console.log('File content loaded, length:', data.length);
                 const pois = parseCUPData(data);
-                console.log('Parsed POIs:', pois);
+                console.log('Parsed POIs:', pois.length);
+
                 clearMarkers(); // Clear existing markers before adding new ones
-                pois.forEach(poi => {
-                    const lat = convertDMSToDD(poi.lat);
-                    const lon = convertDMSToDD(poi.lon);
-                    console.log(`Creating marker for ${poi.name} at (${lat}, ${lon})`);
-                    createMarker(poi, lat, lon);
+                console.log('Existing markers cleared');
+
+                pois.forEach((poi, index) => {
+                    try {
+                        const lat = convertDMSToDD(poi.lat);
+                        const lon = convertDMSToDD(poi.lon);
+                        console.log(`Creating marker ${index + 1}/${pois.length} for ${poi.name} at (${lat}, ${lon})`);
+                        createMarker(poi, lat, lon);
+                        lastPoi = poi; // Update lastPoi with each iteration
+                    } catch (error) {
+                        console.error(`Error creating marker for ${poi.name}:`, error);
+                    }
                 });
+
+                console.log('All markers created. Total markers:', markers.length);
                 updateVisibleWaypointsCount();
+                
+                // Recenter map to last POI's approximate location
+                if (lastPoi) {
+                    console.log('Recentering map to last POI:', lastPoi.name);
+                    const [approxLat, approxLon] = getApproximateCoordinates(lastPoi.lat, lastPoi.lon);
+                    console.log('Setting view to:', approxLat, approxLon, 'with zoom:', map.getZoom());
+                    map.setView([approxLat, approxLon], map.getZoom());
+                } else {
+                    console.log('No POIs processed, map not recentered');
+                }
             };
             reader.readAsText(file);
+        } else {
+            console.log('No file selected');
         }
     });
+	
+	function fitMapToMarkers() {
+		if (markers.length > 0) {
+			const group = new L.featureGroup(markers.map(m => m.marker));
+			map.fitBounds(group.getBounds());
+		}
+	}	
 
     // Function to parse the CUP file
 	function parseCUPData(data) {
@@ -280,6 +335,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 	function createMarker(poi, lat, lon) {
+		console.log(`Creating marker for ${poi.name} at ${lat}, ${lon}`);
 		const zoomLevel = map.getZoom();
 		const iconSize = ICON_SIZES[zoomLevel] || ICON_SIZES[10];
 		const iconUrl = iconSettings[poi.style] || 'icons/default_icon.svg';
@@ -341,58 +397,61 @@ document.addEventListener('DOMContentLoaded', function () {
         marker.setIcon(customIcon);
     }
 
-    function updatePoiDetails(poi) {
-        const unit = document.getElementById('units').value;
-        console.log('Current unit:', unit);
+	function updatePoiDetails(poi) {
+		const unit = document.getElementById('units').value;
+		console.log('Current unit:', unit);
 
-        let elev = poi.elev;
-        let rwlen = poi.rwlen;
-        let rwwidth = poi.rwwidth;
+		// Helper function to safely convert and format values
+		function convertValue(value, unit, conversionFunc) {
+			if (typeof value === 'string') {
+				const numericValue = parseFloat(value);
+				if (!isNaN(numericValue)) {
+					if (value.endsWith('m') && unit === 'imperial') {
+						return conversionFunc(numericValue) + ' ft';
+					} else if (value.endsWith('ft') && unit === 'metric') {
+						return conversionFunc(numericValue) + ' m';
+					}
+				}
+			}
+			return value || ''; // Return original value or empty string if undefined/invalid
+		}
 
-        if (unit === 'imperial') {
-            if (elev.endsWith('m')) {
-                elev = metersToFeet(parseFloat(elev));
-            }
-            if (rwlen.endsWith('m')) {
-                rwlen = metersToFeet(parseFloat(rwlen));
-            }
-            if (rwwidth.endsWith('m')) {
-                rwwidth = metersToFeet(parseFloat(rwwidth));
-            }
-        } else {
-            if (elev.endsWith('ft')) {
-                elev = feetToMeters(parseFloat(elev));
-            }
-            if (rwlen.endsWith('ft')) {
-                rwlen = feetToMeters(parseFloat(rwlen));
-            }
-            if (rwwidth.endsWith('ft')) {
-                rwwidth = feetToMeters(parseFloat(rwwidth));
-            }
-        }
+		// Convert values
+		let elev = convertValue(poi.elev, unit, unit === 'imperial' ? metersToFeet : feetToMeters);
+		let rwlen = convertValue(poi.rwlen, unit, unit === 'imperial' ? metersToFeet : feetToMeters);
+		let rwwidth = convertValue(poi.rwwidth, unit, unit === 'imperial' ? metersToFeet : feetToMeters);
 
-        console.log(`Displaying details for ${poi.name}:`, { elev, rwlen, rwwidth });
+		console.log(`Displaying details for ${poi.name || 'Unknown'}:`, { elev, rwlen, rwwidth });
 
-        document.getElementById('poi-name').textContent = poi.name;
-        document.getElementById('poi-code').textContent = poi.code;
-        document.getElementById('poi-country').textContent = poi.country;
-        document.getElementById('poi-lat').textContent = poi.lat;
-        document.getElementById('poi-lon').textContent = poi.lon;
-        document.getElementById('poi-elev').textContent = elev;
+		// Helper function to safely update DOM elements
+		function updateElement(id, value) {
+			const element = document.getElementById(id);
+			if (element) {
+				element.textContent = value || '';
+			} else {
+				console.warn(`Element with id '${id}' not found`);
+			}
+		}
 
-        // Use the mapping to display the style
-        const styleValue = poi.style;
-        const styleDescription = styleMapping[styleValue] || "Unknown";
-        document.getElementById('poi-style').textContent = `${styleValue} - ${styleDescription}`;
+		// Update DOM elements
+		updateElement('poi-name', poi.name);
+		updateElement('poi-code', poi.code);
+		updateElement('poi-country', poi.country);
+		updateElement('poi-lat', poi.lat);
+		updateElement('poi-lon', poi.lon);
+		updateElement('poi-elev', elev);
 
-        document.getElementById('poi-rwdir').textContent = poi.rwdir + '°';
-        document.getElementById('poi-rwlen').textContent = rwlen;
-        document.getElementById('poi-rwwidth').textContent = rwwidth;
-        document.getElementById('poi-freq').textContent = poi.freq || 'N/A';
-        document.getElementById('poi-desc').textContent = poi.desc;
+		// Use the mapping to display the style
+		const styleValue = poi.style || '';
+		const styleDescription = styleMapping[styleValue] || "Unknown";
+		updateElement('poi-style', `${styleValue} - ${styleDescription}`);
 
-
-    }
+		updateElement('poi-rwdir', poi.rwdir ? `${poi.rwdir}°` : '');
+		updateElement('poi-rwlen', rwlen);
+		updateElement('poi-rwwidth', rwwidth);
+		updateElement('poi-freq', poi.freq || '');
+		updateElement('poi-desc', poi.desc);
+	}
 
 	// Add event listener for unit change to update the details if needed
 	document.getElementById('units').addEventListener('change', function() {
