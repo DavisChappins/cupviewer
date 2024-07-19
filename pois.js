@@ -502,13 +502,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 	function updateAllMarkers() {
+		const bounds = map.getBounds();
+		const zoomLevel = map.getZoom();
+		const iconSize = ICON_SIZES[zoomLevel] || ICON_SIZES[10]; // Default to size for zoom level 10 if undefined
+		let redrawCount = 0; // Counter for redrawn markers
+
 		markers.forEach(({ marker, poi }) => {
-			const iconSize = ICON_SIZES[map.getZoom()] || ICON_SIZES[10]; // Default to size for zoom level 10 if undefined
-			updateMarkerIcon(marker, poi, iconSize);
+			const lat = convertDMSToDD(poi.lat);
+			const lon = convertDMSToDD(poi.lon);
+			const latLng = L.latLng(lat, lon);
+
+			if (bounds.contains(latLng)) {
+				updateMarkerIcon(marker, poi, iconSize);
+				marker.addTo(map); // Add the marker to the map if within bounds
+				redrawCount++;
+			} else {
+				map.removeLayer(marker); // Remove the marker from the map if out of bounds
+			}
 		});
+
+		console.log(`Markers redrawn: ${redrawCount}`);
 	}
 
 
+	// Ensure to call updateAllMarkers when the map zoom or move events occur
 	map.on('zoomend', function() {
 		console.log(`Zoom level changed: ${map.getZoom()}`);
 		updateAllMarkers();
@@ -944,6 +961,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     map.on('moveend', function() {
         adjustCircles();
+		updateAllMarkers();
     });
 
     function adjustCircles() {
