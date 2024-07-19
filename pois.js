@@ -594,6 +594,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '18m': null
     };
 
+	let stateBordersLayer;
+
 	function loadGeoJsonData() {
 		// Load airspace GeoJSON data
 		fetch('files/airspaces.geojson')
@@ -649,31 +651,36 @@ document.addEventListener('DOMContentLoaded', function () {
 				});
 			})
 			.catch(error => console.error('Error loading airspace data:', error));
+	}
+			
+		// Load state borders GeoJSON data
+	function loadStateBorders() {
+		fetch('files/us_states.geojson')
+			.then(response => {
+				if (!response.ok) {
+					throw new Error('Network response was not ok ' + response.statusText);
+				}
+				console.log('State borders response:', response);
+				return response.json();
+			})
+			.then(data => {
+				console.log('State borders data:', data);
+				stateBordersLayer = L.geoJSON(data, {
+					style: {
+						color: 'white',
+						weight: 2,
+						fillOpacity: 0 // Ensure no fill
+					}
+				}).addTo(map);
+			})
+			.catch(error => console.error('Error loading state borders data:', error));
+	}
 
-        // Load labels GeoJSON data
-        fetch('files/labels.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                console.log('Labels response:', response);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Labels data:', data);
-                L.geoJSON(data, {
-                    pointToLayer: (feature, latlng) => {
-                        return L.marker(latlng, {
-                            icon: L.divIcon({
-                                className: 'label-icon',
-                                html: `<div style="background: white; padding: 2px; border: 1px solid black;">${feature.properties.name}</div>`
-                            })
-                        });
-                    }
-                }).addTo(map);
-            })
-            .catch(error => console.error('Error loading labels data:', error));
-    }
+	function removeStateBorders() {
+		if (stateBordersLayer) {
+			map.removeLayer(stateBordersLayer);
+		}
+	}
 
     loadGeoJsonData();
 
@@ -695,6 +702,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <label><input type="checkbox" id="circle15m"> 15m</label>
                 <label><input type="checkbox" id="circle18m"> 18m</label>
 				<label><input type="checkbox" id="circle21m"> 21m</label>
+				<h4><strong>Borders</strong></h4>
+				<label><input type="checkbox" id="borders-states"> US States</label>
             </div>
         `;
         return div;
@@ -780,6 +789,17 @@ document.addEventListener('DOMContentLoaded', function () {
             removeCircle('21m');
         }
     });
+	
+	document.getElementById('borders-states').addEventListener('change', function() {
+		if (this.checked) {
+			loadStateBorders();
+		} else {
+			removeStateBorders();
+		}
+	});	
+	
+	
+	
 
     function drawCircle(id, radius) {
         const center = map.getCenter();
