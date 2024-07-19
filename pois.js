@@ -490,10 +490,26 @@ document.addEventListener('DOMContentLoaded', function () {
 			if (typeof value === 'string') {
 				const numericValue = parseFloat(value);
 				if (!isNaN(numericValue)) {
-					if (value.endsWith('m') && unit === 'imperial') {
-						return conversionFunc(numericValue) + ' ft';
-					} else if (value.endsWith('ft') && unit === 'metric') {
-						return conversionFunc(numericValue) + ' m';
+					// Remove any existing unit
+					let cleanedValue = value.replace(/[^\d.-]/g, '');
+					const cleanedNumericValue = parseFloat(cleanedValue);
+
+					if (unit === 'imperial') {
+						if (value.endsWith('m')) {
+							const result = conversionFunc(cleanedNumericValue);
+							return result;
+						} else if (value.endsWith('ft')) {
+							const result = cleanedNumericValue + ' ft';
+							return result;
+						}
+					} else if (unit === 'metric') {
+						if (value.endsWith('ft')) {
+							const result = conversionFunc(cleanedNumericValue);
+							return result;
+						} else if (value.endsWith('m')) {
+							const result = cleanedNumericValue + ' m';
+							return result;
+						}
 					}
 				}
 			}
