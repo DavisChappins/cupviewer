@@ -90,7 +90,11 @@ const TEXT_SIZES = {
     15: { size: '12px', visible: true },
     16: { size: '12px', visible: true },
     17: { size: '12px', visible: true },
-    18: { size: '12px', visible: true }
+    18: { size: '12px', visible: true },
+    19: { size: '12px', visible: true },
+    20: { size: '12px', visible: true },
+    21: { size: '12px', visible: true },
+    22: { size: '12px', visible: true }
 };
 
 function convertDMSToDD(dms) {
@@ -324,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('Recentering map to last POI:', lastPoi.name);
                     const [approxLat, approxLon] = getApproximateCoordinates(lastPoi.lat, lastPoi.lon);
                     console.log('Setting view to:', approxLat, approxLon, 'with zoom:', map.getZoom());
-                    map.setView([approxLat, approxLon], map.getZoom());
+                    map.setView([approxLat, approxLon], 6);
                 } else {
                     console.log('No POIs processed, map not recentered');
                 }
@@ -690,6 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <h4><strong>Measurement</strong></h4>
                 <label><input type="checkbox" id="circle15m"> 15m</label>
                 <label><input type="checkbox" id="circle18m"> 18m</label>
+				<label><input type="checkbox" id="circle21m"> 21m</label>
             </div>
         `;
         return div;
@@ -767,6 +772,14 @@ document.addEventListener('DOMContentLoaded', function () {
             removeCircle('18m');
         }
     });
+	
+    document.getElementById('circle21m').addEventListener('change', function() {
+        if (this.checked) {
+            drawCircle('21m', 10.5); // New 21m circle
+        } else {
+            removeCircle('21m');
+        }
+    });
 
     function drawCircle(id, radius) {
         const center = map.getCenter();
@@ -779,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const label = L.marker(center, {
             icon: L.divIcon({
                 className: 'circle-label',
-                html: `<div style="font-size: 12px; color: white; text-align: center;">${id}</div>`,
+                html: `<div style="font-size: 14px; color: white; text-align: center;">${id}</div>`,
                 iconSize: [30, 15]
             })
         }).addTo(map);
