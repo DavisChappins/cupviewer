@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			map.on('contextmenu', this._onRightClick, this);
 			map.on('zoomend', this._onZoomChange, this); // Add zoom change event listener
 			this._container.innerHTML = this.options.emptyString;
-			this._elevation = 'cight click'; // Initialize elevation text
+			this._elevation = 'right click'; // Initialize elevation text
 			return this._container;
 		},
 
@@ -311,7 +311,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		_onRightClick: function (e) {
 			const lat = e.latlng.lat;
 			const lon = e.latlng.lng;
-			
+
+			// Set elevation text to "loading elevation" immediately upon right-click
+			this._elevation = 'Loading...';
+			this._onMouseMove(e);
+
 			console.log(`Fetching elevation for coordinates: ${lat}, ${lon}`);
 
 			fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`)
@@ -332,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				})
 				.catch(error => {
 					console.error('Error fetching elevation:', error);
-					this._elevation = 'Error';
+					this._elevation = 'API Error';
 					this._onMouseMove(e);
 				});
 		},
