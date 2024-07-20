@@ -1,6 +1,6 @@
 # Cup Viewer
 A web based cup viewer. Upload your cup file and view waypoints on the map.  
-# 
+
 # Features
 Multiple map layers:  
 Map, aerial, satellite, topographical.  
