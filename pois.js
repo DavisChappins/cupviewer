@@ -1,7 +1,7 @@
 const iconSettings = {
     0: 'icons/map_town.svg',
     1: 'icons/map_town.svg',
-    2: 'icons/alt_landable_airport.svg',
+    2: 'icons/alt_landable_airport_dirt.svg',
     3: 'icons/alt_landable_field.svg',
     4: 'icons/alt_gliding_airport.svg',
     5: 'icons/alt_reachable_airport.svg',
@@ -162,13 +162,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		maxZoom: 19
 	});
 
+    // Google Maps layer
+    const googleSatellite = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '© Google'
+    });
 
 	const thunderforestLandscape = L.tileLayer('https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=d733519551fd447989259b4a961fb864', {
 		attribution: '© <a href="https://carto.com/attributions">CARTO</a>',
 		subdomains: 'abcd',
 		maxZoom: 22
 	});
-
 
     const map = L.map('map', {
         center: [38, -96],
@@ -179,7 +184,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const baseMaps = {
         "Street Map": streets,
-        "Satellite": satellite,
+        "Aerial": satellite,
+        "G Satellite": googleSatellite,
         "Landscape": thunderforestLandscape
     };
 	
@@ -994,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', function () {
     map.on('moveend', function() {
         adjustCircles();
 		updateAllMarkers();
+		
     });
 
     function adjustCircles() {
