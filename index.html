@@ -6,8 +6,9 @@
     <title>Cupviewer</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
     <style>
-        #map { height: 93vh; }
+        #map { height: 93vh; z-index: 1;  }
         #side-pane { height: 90vh; overflow-y: auto; padding: 20px; }
         .leaflet-top.leaflet-right {
             top: 10px;
@@ -45,7 +46,15 @@
 			padding: 5px;
 			color: white; /* White text */
 			border-radius: 3px;
-		}
+        /* Ensuring the Awesomplete dropdown appears above the Leaflet map */
+        .navbar-item.is-centered {
+            position: relative; /* Create a new stacking context */
+            z-index: 10000; /* High z-index to ensure it appears on top */
+        }
+
+        .awesomplete ul {
+            z-index: 10100; /* Ensure the dropdown is above other elements */
+        }
 		
     </style>
 </head>
@@ -59,10 +68,11 @@
 			<div class="navbar-item">
 				<input type="file" id="cup-file-input" accept=".cup" style="display: none;">
 				<span id="visible-waypoints">Number of waypoints:</span>
-
 			</div>
 		</div>
-
+		<div class="navbar-item is-centered">
+			<input class="awesomplete" id="poi-search" type="text" placeholder="Search Waypoints" />
+		</div>
 	</nav>
     <div class="container is-fluid mt-3">
         <div class="columns">
@@ -100,6 +110,7 @@
 	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDQPr3W5OHFtRYr0UqrdIWKTAzx3q9plUQ"></script>
 	<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
     <script src="pois.js"></script>
 </body>
 </html>
