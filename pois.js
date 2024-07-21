@@ -190,13 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 	
 	
-	
-
-
-    
-	
-	
-	// Add this new code for the image age control
+	// Define the ImageAge control
 	L.Control.ImageAge = L.Control.extend({
 		onAdd: function(map) {
 			this._container = L.DomUtil.create('div', 'image-age-container');
@@ -212,11 +206,14 @@ document.addEventListener('DOMContentLoaded', function () {
 		},
 
 		_onZoomChange: function() {
-			var zoom = this._map.getZoom();
-			if (zoom >= 12) {
-				this._getImageInfo(); // Update image info on zoom change
-			} else {
-				this._text.innerHTML = 'Zoom in for image date';
+			// Only execute if the control is visible
+			if (this._container.style.display !== 'none') {
+				var zoom = this._map.getZoom();
+				if (zoom >= 12) {
+					this._getImageInfo(); // Update image info on zoom change
+				} else {
+					this._text.innerHTML = 'Zoom in for image date';
+				}
 			}
 		},
 
@@ -260,16 +257,37 @@ document.addEventListener('DOMContentLoaded', function () {
 		},
 
 		_onBaseLayerChange: function(e) {
-			if (e.name === "Satellite") {
+			if (e.name === "Aerial") {
 				this._container.style.display = 'block';
-				this._onZoomChange(); // Update date info when switching to Satellite
+				this._onZoomChange(); // Update date info when switching to Aerial
 			} else {
 				this._container.style.display = 'none';
 			}
 		}
 	});
 
-	new L.Control.ImageAge({ position: 'bottomright' }).addTo(map);
+	// Create an instance of the control
+	var imageAgeControl = new L.Control.ImageAge({ position: 'bottomright' });
+
+	// Initially add the control to the map if the current layer is "Aerial"
+	if (map.hasLayer(satellite)) {
+		imageAgeControl.addTo(map);
+	}
+
+	// Handle the baselayerchange event to add or remove the control
+	map.on('baselayerchange', function(e) {
+		if (e.name === "Aerial") {
+			if (!map.hasControl(imageAgeControl)) {
+				imageAgeControl.addTo(map);
+			}
+		} else {
+			if (map.hasControl(imageAgeControl)) {
+				map.removeControl(imageAgeControl);
+			}
+		}
+	});
+
+
 
 
 	L.Control.MousePosition = L.Control.extend({
