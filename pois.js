@@ -521,22 +521,25 @@ document.addEventListener('DOMContentLoaded', function () {
         return pois;
     }
 
-    // Initialize Awesomplete
-    const awesomplete = new Awesomplete(document.querySelector("#poi-search"), {
-        list: []
-    });
-    console.log("Awesomplete initialized:", awesomplete);
+	// Initialize Awesomplete
+	const awesomplete = new Awesomplete(document.querySelector("#poi-search"), {
+		list: []
+	});
+	console.log("Awesomplete initialized:", awesomplete);
 
-    // Function to update the search list
-    function updateSearchList(pois) {
-        const poiNames = pois.map(poi => poi.name);
-        console.log("Updating search list with POI names:", poiNames);
-        awesomplete.list = poiNames;
-        console.log("Awesomplete list updated:", awesomplete.list);
-    }
+	// Function to update the search list
+	function updateSearchList(pois) {
+		const poiNames = pois.map(poi => poi.name);
+		console.log("Updating search list with POI names:", poiNames);
+		awesomplete.list = poiNames;
+		console.log("Awesomplete list updated:", awesomplete.list);
+	}
+
+	let selectionMade = false;
 
 	// Add event listener for Awesomplete selection
 	document.querySelector("#poi-search").addEventListener("awesomplete-selectcomplete", function(event) {
+		selectionMade = true;
 		const selectedName = event.text.value;
 		console.log("Selected POI from autocomplete:", selectedName);
 
@@ -560,16 +563,37 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 	
 	
-	// Add event listener for Enter key to select the top entry
+	// Add event listener for Enter key to select the highlighted entry or the first entry
 	document.querySelector("#poi-search").addEventListener("keydown", function(event) {
-		if (event.key === "Enter" && awesomplete.suggestions.length > 0) {
+		if (event.key === "Enter") {
 			event.preventDefault(); // Prevent form submission if applicable
-			const topSuggestion = awesomplete.suggestions[0];
-			awesomplete.select(topSuggestion);
+			
+			console.log("Enter key pressed");
+			console.log("Awesomplete index:", awesomplete.index);
+			console.log("Awesomplete suggestions length:", awesomplete.ul.childNodes.length);
+			
+			// Only proceed if a selection hasn't been made already
+			if (!selectionMade) {
+				if (awesomplete.ul.childNodes.length > 0 && awesomplete.index > -1) {
+					console.log("Selecting highlighted suggestion:", awesomplete.ul.childNodes[awesomplete.index].textContent);
+					awesomplete.select();
+				} else if (awesomplete.ul.childNodes.length > 0) {
+					console.log("Selecting first suggestion:", awesomplete.ul.childNodes[0].textContent);
+					awesomplete.select(awesomplete.ul.childNodes[0]);
+				}
+			}
+			selectionMade = false; // Reset for next selection
 		}
-	});	
+	});
 	
-	
+	// Add event listener to log arrow key navigation
+	document.querySelector("#poi-search").addEventListener("awesomplete-highlight", function(event) {
+		console.log("Highlighted suggestion index:", awesomplete.index);
+		if (awesomplete.index > -1) {
+			console.log("Highlighted suggestion:", awesomplete.ul.childNodes[awesomplete.index].textContent);
+		}
+		selectionMade = false; // Reset selection flag on new highlight
+	});
 
 	
 	
