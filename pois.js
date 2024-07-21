@@ -488,33 +488,96 @@ document.addEventListener('DOMContentLoaded', function () {
 			map.fitBounds(group.getBounds());
 		}
 	}	
-
+	
+	
+	let pois = [];
+	
+			
     // Function to parse the CUP file
-	function parseCUPData(data) {
-		console.log('Parsing CUP data...');
-		const lines = data.split('\n');
-		const headers = lines[0].split(',');
-		console.log('CUP headers:', headers);
-		const pois = [];
+    function parseCUPData(data) {
+        console.log('Parsing CUP data...');
+        const lines = data.split('\n');
+        const headers = lines[0].split(',');
+        console.log('CUP headers:', headers);
+        pois = [];
 
-		for (let i = 1; i < lines.length; i++) {
-			const line = lines[i].trim();
-			// Skip lines that do not match the expected CUP file format
-			if (!line || !line.includes(',')) {
-				console.log('Skipping invalid line:', line);
-				continue;
-			}
-			const values = line.split(',').map(value => value.trim().replace(/^"|"$/g, ''));
-			const poi = {};
-			headers.forEach((header, index) => {
-				poi[header.trim()] = values[index];
-			});
-			console.log('Parsed POI:', poi);
-			pois.push(poi);
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            // Skip lines that do not match the expected CUP file format
+            if (!line || !line.includes(',')) {
+                console.log('Skipping invalid line:', line);
+                continue;
+            }
+            const values = line.split(',').map(value => value.trim().replace(/^"|"$/g, ''));
+            const poi = {};
+            headers.forEach((header, index) => {
+                poi[header.trim()] = values[index];
+            });
+            console.log('Parsed POI:', poi);
+            pois.push(poi);
+        }
+        console.log('Total POIs parsed:', pois.length);
+        updateSearchList(pois); // Update the search list
+        return pois;
+    }
+
+    // Initialize Awesomplete
+    const awesomplete = new Awesomplete(document.querySelector("#poi-search"), {
+        list: []
+    });
+    console.log("Awesomplete initialized:", awesomplete);
+
+    // Function to update the search list
+    function updateSearchList(pois) {
+        const poiNames = pois.map(poi => poi.name);
+        console.log("Updating search list with POI names:", poiNames);
+        awesomplete.list = poiNames;
+        console.log("Awesomplete list updated:", awesomplete.list);
+    }
+
+	// Add event listener for Awesomplete selection
+	document.querySelector("#poi-search").addEventListener("awesomplete-selectcomplete", function(event) {
+		const selectedName = event.text.value;
+		console.log("Selected POI from autocomplete:", selectedName);
+
+		// Find the corresponding POI
+		const selectedPoi = pois.find(poi => poi.name === selectedName);
+		if (selectedPoi) {
+			console.log("Selected POI data:", selectedPoi);
+			
+			// Update map view and details
+			const lat = convertDMSToDD(selectedPoi.lat);
+			const lon = convertDMSToDD(selectedPoi.lon);
+			map.setView([lat, lon], 10); // Adjust zoom level as needed
+			
+			// Simulate a click on the marker
+			const marker = markers.find(m => m.poi.name === selectedName).marker;
+			marker.fire('click');
+			
+			// Clear the search box
+			event.target.value = '';
 		}
-		console.log('Total POIs parsed:', pois.length);
-		return pois;
-	}
+	});
+	
+	
+	// Add event listener for Enter key to select the top entry
+	document.querySelector("#poi-search").addEventListener("keydown", function(event) {
+		if (event.key === "Enter" && awesomplete.suggestions.length > 0) {
+			event.preventDefault(); // Prevent form submission if applicable
+			const topSuggestion = awesomplete.suggestions[0];
+			awesomplete.select(topSuggestion);
+		}
+	});	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
 
     function clearMarkers() {
         markers.forEach(({ marker }) => {
@@ -610,6 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	let selectedPoi = null; // Track the currently selected POI
 
 
+	// Function to create a marker
 	function createMarker(poi, lat, lon) {
 		console.log(`Creating marker for ${poi.name} at ${lat}, ${lon}`);
 		const zoomLevel = map.getZoom();
