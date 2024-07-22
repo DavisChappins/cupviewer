@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					},
 					onEachFeature: (feature, layer) => {
 						if (feature.properties && feature.properties.NAME) {
-							layer.bindPopup(`<strong>${feature.properties.NAME}</strong><br>Type: ${feature.properties.CLASS}`);
+							layer.bindPopup(`<strong>${feature.properties.NAME}</strong><br>${feature.properties.CEILING} to ${feature.properties.FLOOR}`);
 						}
 						if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
 							const bounds = layer.getBounds();
