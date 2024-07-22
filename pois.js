@@ -183,10 +183,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const baseMaps = {
-        "Street Map": streets,
+        "Streets": streets,
         "Aerial": satellite,
-        "G Satellite": googleSatellite,
-        "Landscape": thunderforestLandscape
+        "Satellite": googleSatellite,
+        "Topo": thunderforestLandscape
     };
 	
 	
