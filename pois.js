@@ -181,15 +181,38 @@ document.addEventListener('DOMContentLoaded', function () {
         layers: [satellite], // Default layer
 		zoomControl: false // Disable the default zoom control
     });
+	
+	const faaSectional = L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}', {
+		maxZoom: 12,
+		minZoom: 8,
+		attribution: 'FAA Sectional Charts | Esri, FAA',
+		tileSize: 256,
+		errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==', // 1x1 transparent png
+	});
 
     const baseMaps = {
         "Streets": streets,
         "Aerial": satellite,
         "Satellite": googleSatellite,
-        "Topo": thunderforestLandscape
+        "Topo": thunderforestLandscape,
+	"Sectional": faaSectional
     };
 	
-	
+	// Add event listeners for tile loading events
+	faaSectional.on('tileloadstart', function(event) {
+		console.log('Tile load started:', event.url);
+	});
+
+	faaSectional.on('tileload', function(event) {
+		console.log('Tile loaded successfully:', event.tile.src);
+	});
+
+	faaSectional.on('tileerror', function(event) {
+		console.error('Tile failed to load:', event.tile.src, 'Error:', event.error);
+	});
+
+
+
 	// Define the ImageAge control
 	L.Control.ImageAge = L.Control.extend({
 		onAdd: function(map) {
