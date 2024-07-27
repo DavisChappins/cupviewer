@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
         "Aerial": satellite,
         "Satellite": googleSatellite,
         "Topo": thunderforestLandscape,
-	"Sectional": faaSectional
+		"Sectional": faaSectional
     };
 	
 	// Add event listeners for tile loading events
@@ -454,7 +454,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Add event listener to the "Upload CUP File" button
     const uploadButton = document.getElementById('upload-cup-button');
     const fileInput = document.getElementById('cup-file-input');
-
+	const fileNameSpan = document.getElementById('cup-file-name');
+	
     uploadButton.addEventListener('click', () => {
         fileInput.click();
     });
@@ -464,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const file = event.target.files[0];
         if (file) {
             console.log('File selected:', file.name);
+            fileNameSpan.textContent = `${file.name}`; // Set the file name in the span element
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = e.target.result;
@@ -517,32 +519,62 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 			
     // Function to parse the CUP file
-    function parseCUPData(data) {
-        console.log('Parsing CUP data...');
-        const lines = data.split('\n');
-        const headers = lines[0].split(',');
-        console.log('CUP headers:', headers);
-        pois = [];
+	function parseCUPData(data) {
+		console.log('Parsing CUP data...');
+		const lines = data.split('\n');
+		const headers = lines[0].split(',').map(header => header.trim());
+		console.log('CUP headers:', headers);
+		let pois = [];
 
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            // Skip lines that do not match the expected CUP file format
-            if (!line || !line.includes(',')) {
-                console.log('Skipping invalid line:', line);
-                continue;
-            }
-            const values = line.split(',').map(value => value.trim().replace(/^"|"$/g, ''));
-            const poi = {};
-            headers.forEach((header, index) => {
-                poi[header.trim()] = values[index];
-            });
-            console.log('Parsed POI:', poi);
-            pois.push(poi);
-        }
-        console.log('Total POIs parsed:', pois.length);
-        updateSearchList(pois); // Update the search list
-        return pois;
-    }
+		const parseLine = (line) => {
+			const result = [];
+			let inQuotes = false;
+			let currentField = '';
+			
+			for (let i = 0; i < line.length; i++) {
+				if (line[i] === '"') {
+					inQuotes = !inQuotes;
+				} else if (line[i] === ',' && !inQuotes) {
+					result.push(currentField.trim());
+					currentField = '';
+				} else {
+					currentField += line[i];
+				}
+			}
+			result.push(currentField.trim());
+			
+			return result;
+		};
+
+		for (let i = 1; i < lines.length; i++) {
+			const line = lines[i].trim();
+			if (!line) {
+				console.log('Skipping empty line');
+				continue;
+			}
+
+			const values = parseLine(line);
+			if (values.length !== headers.length) {
+				console.log(`Warning: Line ${i + 1} has ${values.length} fields, expected ${headers.length}`);
+				console.log(`Line: ${line}`);
+				// Pad or truncate the values array to match headers length
+				while (values.length < headers.length) values.push('');
+				values.length = headers.length;
+			}
+
+			const poi = {};
+			headers.forEach((header, index) => {
+				poi[header] = values[index];
+			});
+
+			console.log('Parsed POI:', poi);
+			pois.push(poi);
+		}
+
+		console.log('Total POIs parsed:', pois.length);
+		updateSearchList(pois); // Update the search list
+		return pois;
+	}
 
 	// Initialize Awesomplete
 	const awesomplete = new Awesomplete(document.querySelector("#poi-search"), {
