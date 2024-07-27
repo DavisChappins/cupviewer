@@ -1042,10 +1042,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     collapsibleControl.addTo(map);
 
-    document.querySelector('.collapsible-control h4').addEventListener('click', function() {
-        const content = document.querySelector('.collapsible-content');
-        content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    });
+	const content = document.querySelector('.collapsible-content');
+	content.style.display = 'none'; // Set initial state
+	
+	
+	document.querySelector('.collapsible-control h4').addEventListener('click', function() {
+		content.style.display = content.style.display === 'none' ? 'block' : 'none';
+	});
 
     document.getElementById('classB').addEventListener('change', function() {
         if (this.checked) {
