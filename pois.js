@@ -516,15 +516,35 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	
 	let pois = [];
+
 	
 			
-    // Function to parse the CUP file
+	// Function to parse the CUP file
 	function parseCUPData(data) {
 		console.log('Parsing CUP data...');
 		const lines = data.split('\n');
-		const headers = lines[0].split(',').map(header => header.trim());
-		console.log('CUP headers:', headers);
-		let pois = [];
+		const rawHeaders = lines[0].split(',').map(header => header.trim());
+		console.log('CUP headers:', rawHeaders);
+
+		const headerMappings = {
+			'Title': 'name', 'Name': 'name',
+			'Code': 'code',
+			'Country': 'country',
+			'Latitude': 'lat', 'Lat': 'lat',
+			'Longitude': 'lon', 'Lon': 'lon',
+			'Elevation': 'elev', 'Elev': 'elev',
+			'Style': 'style',
+			'Direction': 'rwdir', 'RunwayDirection': 'rwdir',
+			'Length': 'rwlen', 'RunwayLength': 'rwlen',
+			'Width': 'rwwidth', 'RunwayWidth': 'rwwidth',
+			'Frequency': 'freq',
+			'Description': 'desc', 'Desc': 'desc'
+		};
+
+		const headers = rawHeaders.map(header => headerMappings[header] || header);
+		console.log('Mapped headers:', headers);
+
+		pois = [];
 
 		const parseLine = (line) => {
 			const result = [];
@@ -568,6 +588,10 @@ document.addEventListener('DOMContentLoaded', function () {
 			});
 
 			console.log('Parsed POI:', poi);
+			if (!poi.name) {
+				console.warn('Parsed POI without a name:', poi);
+			}
+
 			pois.push(poi);
 		}
 
@@ -576,9 +600,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		return pois;
 	}
 
-	// Initialize Awesomplete
-	const awesomplete = new Awesomplete(document.querySelector("#poi-search"), {
-		list: []
+	// Ensure Awesomplete is correctly initialized
+	const poiSearchInput = document.querySelector("#poi-search");
+	const awesomplete = new Awesomplete(poiSearchInput, {
+		list: [],
+		autoFirst: true // Automatically highlight the first item
 	});
 	console.log("Awesomplete initialized:", awesomplete);
 
@@ -586,14 +612,13 @@ document.addEventListener('DOMContentLoaded', function () {
 	function updateSearchList(pois) {
 		const poiNames = pois.map(poi => poi.name);
 		console.log("Updating search list with POI names:", poiNames);
-		awesomplete.list = poiNames;
-		console.log("Awesomplete list updated:", awesomplete.list);
+
+		awesomplete._list = poiNames;
+		console.log("Awesomplete list updated:", awesomplete._list);
 	}
 
-	let selectionMade = false;
-
 	// Add event listener for Awesomplete selection
-	document.querySelector("#poi-search").addEventListener("awesomplete-selectcomplete", function(event) {
+	poiSearchInput.addEventListener("awesomplete-selectcomplete", function(event) {
 		selectionMade = true;
 		const selectedName = event.text.value;
 		console.log("Selected POI from autocomplete:", selectedName);
@@ -602,18 +627,27 @@ document.addEventListener('DOMContentLoaded', function () {
 		const selectedPoi = pois.find(poi => poi.name === selectedName);
 		if (selectedPoi) {
 			console.log("Selected POI data:", selectedPoi);
-			
+
 			// Update map view and details
 			const lat = convertDMSToDD(selectedPoi.lat);
 			const lon = convertDMSToDD(selectedPoi.lon);
+			console.log(`Setting map view to [${lat}, ${lon}]`);
 			map.setView([lat, lon], 10); // Adjust zoom level as needed
-			
+
 			// Simulate a click on the marker
-			const marker = markers.find(m => m.poi.name === selectedName).marker;
-			marker.fire('click');
-			
+			const markerObj = markers.find(m => m.poi.name === selectedName);
+			if (markerObj) {
+				console.log("Found marker for selected POI:", markerObj);
+				markerObj.marker.fire('click');
+			} else {
+				console.error("No marker found for selected POI:", selectedName);
+			}
+
 			// Clear the search box
 			event.target.value = '';
+		} else {
+			console.error("No POI found with the selected name:", selectedName);
+			console.log("Available POIs:", pois);
 		}
 	});
 	
