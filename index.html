@@ -11,14 +11,38 @@
       gtag('config', 'G-E442GTJVGB');
     </script>
     
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    <!-- Microsoft Clarity with IP check -->
+    <script>
+      const blockedCountries = [
+        "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
+        "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT",
+        "NL", "PL", "PT", "RO", "SE", "SI", "SK", "UK", "CH", "NO", "IS", "LI"
+      ];
+
+      function loadClarity() {
+        (function(c, l, a, r, i, t, y) {
+          c[a] = c[a] || function() { (c[a].q = c[a].q || []).push(arguments); };
+          t = l.createElement(r); t.async = 1;
+          t.src = "https://www.clarity.ms/tag/" + i;
+          y = l.getElementsByTagName(r)[0];
+          y.parentNode.insertBefore(t, y);
         })(window, document, "clarity", "script", "qpr75nsvcr");
-    </script>
-    
+      }
+
+      fetch('https://ipapi.co/json/')
+        .then(response => {
+          if (!response.ok) { throw new Error(response.status); }
+          return response.json();
+        })
+        .then(data => {
+          if (!blockedCountries.includes(data.country)) {
+            loadClarity();
+          }
+        })
+        .catch(error => {
+          // On error (including rate limiting), Clarity will not load.
+        });
+    </script> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cupviewer</title>
